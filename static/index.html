@@ -8,6 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
     <!-- Data Visualization library -->
     <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://d3js.org/topojson.v3.min.js"></script>
     <style>
         body {
             /* background-color: black;
@@ -37,19 +38,117 @@
         h2, h3 {
             font-family: "Instrument Serif", serif;
         }
+
+        .country {
+        fill: lightgrey;
+          }
+          .outline {
+            fill: none;
+            stroke: black;
+            stroke-width: 1px;
+          }
     </style>
 </head>
 <body>
     <h1>
         Hello World Final Proj
     </h1>
+    <svg id="choropleth" height="500" width="1000"></svg>
     <script>
-        const loadData = async function() {
-            tariffData = (await d3.csv("dataset/all.csv"))
+        const choropleth = d3.select("#choropleth");
+        const mapWidth = choropleth.attr("width");
+        const mapHeight = choropleth.attr("height");
+        const mapMargin = { top: 20, right: 20, bottom: 20, left: 20};
+        const mapAreaWidth = mapWidth - mapMargin.left - mapMargin.right;
+        const mapAreaHeight = mapHeight - mapMargin.top - mapMargin.bottom;
+        const map = choropleth.append("g")
+                    
+        
+        const requestData = async function () {
 
-            console.log(tariffData);
-        }
-        loadData();
+          const world = await d3.json("dataset/countries-110m.json");
+          const tariffData = await d3.csv("dataset/all.csv", d3.autoType);
+
+          var countries = topojson.feature(world, world.objects.countries);     // List of state outlines to fill
+          var countriesMesh = topojson.mesh(world, world.objects.countries);    // 'Mesh' of all outlines put together for a stroke
+          var projection = d3.geoEqualEarth().fitSize([mapWidth, mapHeight], countries);
+          var path = d3.geoPath().projection(projection);
+
+          const minMax = d3.extent(tariffData, d => d["Tariffs Charged to USA (%)"]);
+          const colorScale = d3.scaleQuantile()
+            .domain(minMax)
+            .range(["#fff","#d1e8ed","#adc2da","#8879b3","#762b80"]);
+
+          const countryTariffs = {};
+            tariffData.forEach(d => {
+              countryTariffs[d.Country.trim()] = d["Tariffs Charged to USA (%)"];
+            });
+
+          map.selectAll("path.country").data(countries.features)
+                       .join("path")
+                       .attr("class", "country")
+                       .attr("note", d => d.id) 
+                       .attr("d", path)
+                       .style("fill", d => {
+                        const name = d.properties.name;
+                        const tariff = countryTariffs[name];
+                        return tariff != null ? colorScale(tariff) : "#ccc";
+                      });
+                    
+          map.append("path").datum(countriesMesh)
+            .attr("class","outline")
+            .attr("d", path);
+
+
+
+          // legend
+          // Create a legend group
+        const legend = choropleth.append("g")
+          .attr("class", "legend")
+          .attr("transform", `translate(${mapWidth - 150}, ${mapHeight - 250})`);
+
+        // Legend title
+        legend.append("text")
+          .text("Tariffs Charged to USA (%)")
+          .attr("y", -10)
+          .attr("font-size", "12px")
+          .attr("font-weight", "bold");
+
+        // Get quantile thresholds and color range
+        const thresholds = colorScale.quantiles();  // array of breakpoints
+        const colors = colorScale.range();          // same order as thresholds
+
+        // Draw legend entries
+        colors.forEach((color, i) => {
+          const x = 0;
+          const y = i * 20;
+
+          legend.append("rect")
+            .attr("x", x)
+            .attr("y", y)
+            .attr("width", 18)
+            .attr("height", 18)
+            .attr("fill", color);
+
+          let label;
+          const from = i === 0 ? minMax[0] : thresholds[i - 1];
+          const to = thresholds[i];
+
+          if (i === colors.length - 1) {
+            label = `${from.toFixed(1)}+`;
+          } else {
+            label = `${from.toFixed(1)} - ${to.toFixed(1)}`;
+          }
+
+          legend.append("text")
+            .attr("x", x + 25)
+            .attr("y", y + 13)
+            .attr("font-size", "12px")
+            .text(label);
+        });
+
+        };
+        requestData();
     </script>
 </body>
 </html>
