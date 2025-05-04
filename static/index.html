@@ -54,6 +54,26 @@
         Hello World Final Proj
     </h1>
     <svg id="choropleth" height="500" width="1000"></svg>
+
+    <h2>Business Reactions to Trump's Tariffs</h2>
+    <div class="dropdown">
+      <label for="category-select">Filter by Category:</label>
+      <select id="category-select">
+        <option value="All">All</option>
+      </select>
+    </div>
+    <div id="chart">
+      <svg id="viz" width="800" height="800"></svg>
+      <div id="details">
+        <h3>Reaction</h3>
+        <p id="reaction-text">Click a bubble to view details.</p>
+      </div>
+    </div>
+
+    <p> Source: <a href="https://www.freightwaves.com/news/20-company-reactions-good-and-bad-to-trumps-tariff-war">Freight Waves</a> and <a href="https://www.pbs.org/newshour/show/how-businesses-are-dealing-with-the-impacts-of-trumps-tariff-policies">PBS</a></p>
+
+
+
     <script>
         const choropleth = d3.select("#choropleth");
         const mapWidth = choropleth.attr("width");
@@ -149,6 +169,82 @@
 
         };
         requestData();
+
+
+        // business bubble
+        const width = 800;
+        const height = 500;
+
+        const svg = d3.select("#viz")
+          .attr("viewBox", [0, 0, width, height])
+          .attr("style", "font: 10px sans-serif;");
+
+        const color = d3.scaleOrdinal()
+          .domain(["Positive", "Neutral", "Negative"])
+          .range(["#2ca02c", "#ff7f0e", "#d62728"]);
+
+        d3.csv("dataset/business_reactions.csv").then(data => {
+          data.forEach(d => {
+            d.market_cap = +d.market_cap;
+          });
+
+          const categories = Array.from(new Set(data.map(d => d.Category)));
+          categories.forEach(cat => {
+            d3.select("#category-select").append("option")
+              .attr("value", cat)
+              .text(cat);
+          });
+
+          let currentData = data;
+
+          const draw = (filteredData) => {
+            svg.selectAll("*").remove();
+
+            const root = d3.pack()
+              .size([width, height])
+              .padding(5)(
+                d3.hierarchy({ children: filteredData }).sum(d => d.market_cap)
+              );
+
+            const node = svg.selectAll("g")
+              .data(root.leaves())
+              .join("g")
+              .attr("transform", d => `translate(${d.x},${d.y})`)
+              .attr("class", "bubble")
+              .on("click", function(event, d) {
+                  d3.select("#reaction-text").text(d.data.Reaction);
+              });
+              
+            node.append("circle")
+              .attr("r", d => d.r + 2)  // slightly larger than image
+              .attr("fill", "none")
+              .attr("stroke", d => color(d.data.Sentiment))
+              .attr("stroke-width", 3);
+
+            // Add the image inside the circle
+            node.append("image")
+              .attr("href", d => d.data.image)
+              .attr("width", d => d.r * 2)
+              .attr("height", d => d.r * 2)
+              .attr("x", d => -d.r)
+              .attr("y", d => -d.r)
+              .attr("clip-path", d => `circle(${d.r}px at ${d.r}px ${d.r}px)`);
+
+
+
+            node.append("title")
+              .text(d => `${d.data.Name}\n${d.data.Sentiment}`);
+
+          };
+
+          draw(currentData);
+
+          d3.select("#category-select").on("change", function() {
+            const selected = this.value;
+            currentData = selected === "All" ? data : data.filter(d => d.Category === selected);
+            draw(currentData);
+          });
+        });
     </script>
 </body>
 </html>
