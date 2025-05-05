@@ -47,15 +47,72 @@
             stroke: black;
             stroke-width: 1px;
           }
+
+          .line {
+          fill: none;
+          stroke: black;
+          stroke-width: 2;
+        }
     </style>
 </head>
 <body>
     <h1>
-        Hello World Final Proj
+        How will the trade war and Trump's Tariffs affect you?
     </h1>
+    <h2>Current state of Trump's Tariffs</h2>
     <svg id="choropleth" height="500" width="1000"></svg>
 
-    <h2>Business Reactions to Trump's Tariffs</h2>
+    <h2>What were the effects of Trump's 2018 tariffs?</h2>
+    <p> Trump’s 2018 tariffs led to widespread economic ripple effects. They raised costs for U.S. importers and manufacturers who relied on foreign materials, prompting many businesses to increase prices or absorb losses. </p>
+    <h3>How did washing machine prices change because of the 2018 tariffs?</h3>
+    <p>This chart shows how prices rose following Trump’s 2018 tariffs and the COVID-19 pandemic.</p>
+    <svg id="washchart" width="900" height="500"></svg>
+
+    <section id="scrolly">
+      <article>
+          <div class="step" data-step="0">
+              <div class="scale-labels">
+                  <h3>Kaiser Permanente?</h3>
+                  <p>Industry average denials.</p>
+              </div>
+          </div>
+          <div class="step" data-step="1">
+              <div class="scale-labels">
+              <h3>Aetna?</h3>
+              <p>Wow, that's a lot of claims denied.</p>
+              </div>
+          </div>
+          <div class="step" data-step="2">
+              <div class="scale-labels">
+              <h3>Anthem?</h3>
+              <p>Even more than Aetna, yikes</p>
+              </div>
+          </div>
+          <div class="step" data-step="3">
+              <div class="scale-labels">
+              <h3>Medica?</h3>
+              <p>So many claims denied, and for what? The profit isn't even as high as the first 3.</p>
+              </div>
+          </div>
+          <div class="step" data-step="4">
+              <div class="scale-labels">
+              <h3>UnitedHealth Group?</h3>
+              <p>32% of claims denied??? 371 Billion in profit??? I wonder if this is why people are so numbed by their CEO dying.</p>
+              </div>
+          </div>
+      </article>
+
+      <figure>
+          <div class="graph" data-graph-type="bar">
+              <svg class="scales"></svg>
+          </div>
+      </figure>
+  </section>
+
+
+
+    <h2>How are businesses reacting to Trump's Tariffs?</h2>
+    <p> Click on any of the circles for more information</p>
     <div class="dropdown">
       <label for="category-select">Filter by Category:</label>
       <select id="category-select">
@@ -169,6 +226,90 @@
 
         };
         requestData();
+
+        //washing machine
+        const washsvg = d3.select("#washchart");
+        const margin = {top: 50, right: 30, bottom: 50, left: 60},
+              washwidth = +washsvg.attr("width") - margin.left - margin.right,
+              washheight = +washsvg.attr("height") - margin.top - margin.bottom;
+
+        const parseDate = d3.timeParse("%Y %b");
+        const g = washsvg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+
+        d3.csv("dataset/washing.csv").then(data => {
+          data.forEach(d => {
+            d.Date = parseDate(d.Label); 
+            d.Value = +d.Value;
+          });
+
+
+        const x = d3.scaleTime()
+          .domain(d3.extent(data, d => d.Date))
+          .range([0, washwidth]);
+
+        const y = d3.scaleLinear()
+          .domain([d3.min(data, d => d.Value) - 2, d3.max(data, d => d.Value) + 2])
+          .range([washheight, 0]);
+
+        // Also update axis transforms accordingly:
+        g.append("g")
+          .attr("transform", `translate(0,${washheight})`)
+          .call(d3.axisBottom(x));
+
+
+          g.append("g")
+            .call(d3.axisLeft(y));
+
+          // Draw the line
+          g.append("path")
+            .datum(data)
+            .attr("class", "line")
+            .attr("fill", "none")  // <-- THIS LINE PREVENTS SHADING
+            .attr("d", d3.line()
+              .x(d => x(d.Date))
+              .y(d => y(d.Value))
+            );
+
+          // Add labels for events
+          const events = [
+            { date: "2018-01-01", label: "Tariffs Begin", color: "red" },
+            { date: "2020-03-01", label: "COVID-19 Pandemic", color: "purple" },
+            { date: "2023-02-01", label: "Tariffs Expire", color: "green" }
+          ];
+
+
+          events.forEach(e => {
+            const eventDate = d3.timeParse("%Y-%m-%d")(e.date);
+            g.append("line")
+              .attr("x1", x(eventDate))
+              .attr("x2", x(eventDate))
+              .attr("y1", 0)
+              .attr("y2", height)
+              .attr("stroke", e.color)
+              .attr("stroke-dasharray", "4,4");
+
+            g.append("text")
+              .attr("x", x(eventDate) + 5)
+              .attr("y", 20)
+              .attr("fill", e.color)
+              .attr("class", "annotation")
+              .text(e.label);
+          });
+
+          // Axis labels
+          washsvg.append("text")
+            .attr("x", margin.left + washwidth / 2)
+            .attr("y", washsvg.attr("height") - 10)
+            .attr("text-anchor", "middle")
+            .text("Year");
+
+          washsvg.append("text")
+            .attr("x", -washheight / 2 - margin.top)
+            .attr("y", 15)
+            .attr("transform", "rotate(-90)")
+            .attr("text-anchor", "middle")
+            .text("Price Index");
+        });
 
 
         // business bubble
