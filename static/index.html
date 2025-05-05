@@ -4,41 +4,160 @@
     <title>Ikea Dimensions</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cousine:ital,wght@0,400;0,700;1,400;1,700&family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
-    <!-- Data Visualization library -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chivo:ital,wght@0,100..900;1,100..900&family=Lora:ital,wght@0,400..700;1,400..700&display=swap" rel="stylesheet">
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://d3js.org/topojson.v3.min.js"></script>
+    <script src="https://unpkg.com/scrollama"></script>
     <style>
         body {
-            /* background-color: black;
-            color: white; */
-            font-family: "Cousine", monospace;
-            /* display: flex;
+            width: 60vw;
+            min-height: 100vh;
+            margin: 0 auto;
+            background: linear-gradient(135deg, #232526 0%, #151616 100%);
+            color: #f3f3f3;
+            font-family: 'Lora', serif;
+            display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: flex-start;
-            width: 80%;
-            height: auto;
-            margin: auto; */
+            box-sizing: border-box;
+            text-align: left;
         }
 
-        text, label {
-            font-family: "Cousine", monospace;
+        section {
+          width: 100%;
         }
-
+        
+        h1, h2, h3 {
+            font-family: 'Chivo', serif;
+            color: #fff;
+            letter-spacing: 0.01em;
+            text-align: left;
+        }
         h1 {
-            font-family: "Instrument Serif", serif;
-            /* font-style: normal;
+            font-size: 2.5em;
+            font-weight: 700;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            text-align: left;
+        }
+        h2 {
+            font-size: 1.5em;
+            font-weight: 700;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            text-align: left;
+        }
+        h3 {
+            font-size: 1.2em;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            text-align: left;
+        }
+        p, label, select, text, .step {
+            font-family: 'Lora', serif;
+            font-size: 1.05em;
+            color: #f3f3f3;
+            text-align: left;
+        }
+        a { color: #aeefff; }
+        #scrolly {
+            display: flex;
+            align-items: flex-start;
+            max-width: 1000px;
+            margin: 0 auto;
+            min-height: 80vh;
+        }
+        #scrolly article {
+            flex: 1 1 50%;
+            max-width: 400px;
+            margin-right: 2rem;
+        }
+        #scrolly figure {
+            flex: 1 1 50%;
+            position: sticky;
+            top: 10vh;
+            height: 60vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #priceChart {
+            width: 100%;
+            height: 100%;
+        }
+        .step {
+            margin: 0 auto 2rem auto;
+            padding: 1.5rem 1.2rem 1.2rem 1.2rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: background 0.3s;
+        }
+        .step:last-child {
+            margin-bottom: 0;
+        }
+        .step img {
+            display: block;
+            margin: 1em auto 0 auto;
+            max-width: 90%;
+            height: auto;
+   
+        }
+        figure {
+            position: sticky;
+            top: 0;
+            width: 100%;
+            margin: 0;
+            -webkit-transform: translate3d(0, 0, 0);
+            -moz-transform: translate3d(0, 0, 0);
+            transform: translate3d(0, 0, 0);
+
+        }
+        figure p {
             text-align: center;
-            font-size: 30px;
-            margin: 20px 0; */
+            padding: 1rem;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            -moz-transform: translate(-50%, -50%);
+            -webkit-transform: translate(-50%, -50%);
+            transform: translate(-50%, -50%);
+            font-size: 8rem;
+            font-weight: 900;
+            color: #fff;
         }
-
-        h2, h3 {
-            font-family: "Instrument Serif", serif;
+        .bar {
+            transition: all 0.3s ease-in-out;
         }
-
+        .bar.active {
+            opacity: 1;
+        }
+        .bar:not(.active) {
+            opacity: 0;
+        }
+        svg {
+            display: block;
+            margin: auto;
+            background: transparent;
+        }
+        .dropdown, #details {
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        select {
+            background: rgba(40, 44, 52, 0.7);
+            color: #f3f3f3;
+            border-radius: 8px;
+            padding: 0.4em 1em;
+            font-size: 1em;
+        }
+        ::selection {
+            background: #aeefff33;
+        }
         .country {
         fill: lightgrey;
           }
@@ -50,66 +169,127 @@
 
           .line {
           fill: none;
-          stroke: black;
+          stroke: white;
           stroke-width: 2;
+        }
+        /* New: Bubble chart and reaction side by side */
+        #chart {
+            display: flex;
+            flex-direction: row;
+            gap: 2rem;
+            align-items: flex-start;
+            justify-content: center;
+            margin-top: 2rem;
+            margin-bottom: 2rem;
+        }
+        #viz {
+            flex: 2 1 0;
+            padding: 1rem;
+            width: 500px;
+            height: 500px;
+        }
+        #details {
+            flex: 1 1 0;
+            min-width: 220px;
+            max-width: 300px;
+            margin: 0;
+            padding: 1.5rem 1.2rem 1.2rem 1.2rem;
+            color: #f3f3f3;
+            height: 500px;
+            box-sizing: border-box;
+            overflow: auto;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+        }
+        .bubble {
+            cursor: pointer;
+            transition: opacity 0.2s, filter 0.2s;
+        }
+        .bubble.dimmed {
+            opacity: 0.3;
+            filter: grayscale(0.7) brightness(0.7);
+        }
+        .bubble.highlighted {
+            opacity: 1 !important;
+            filter: none !important;
+        }
+        @media (max-width: 900px) {
+            #chart {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            #viz, #details {
+                width: 100%;
+                max-width: 100%;
+            }
+        }
+        #bubble-legend {            
+            padding: 1rem 1.5rem;
+            margin-bottom: 1.5rem;
+            color: #f3f3f3;
+            font-family: 'Inter', sans-serif;
+            font-size: 1em;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            max-width: 800px;
+        }
+        .legend-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.2em;
+        }
+        .legend-bubble {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            margin-right: 0.5em;
+            background: #fff2;
+            vertical-align: middle;
         }
     </style>
 </head>
 <body>
+
     <h1>
         How will the trade war and Trump's Tariffs affect you?
     </h1>
+
+    <section id="intro">
     <h2>Current state of Trump's Tariffs</h2>
     <svg id="choropleth" height="500" width="1000"></svg>
+    </section>
 
+    <section id="2018tariffs">
     <h2>What were the effects of Trump's 2018 tariffs?</h2>
-    <p> Trump’s 2018 tariffs led to widespread economic ripple effects. They raised costs for U.S. importers and manufacturers who relied on foreign materials, prompting many businesses to increase prices or absorb losses. </p>
-    <h3>How did washing machine prices change because of the 2018 tariffs?</h3>
-    <p>This chart shows how prices rose following Trump’s 2018 tariffs and the COVID-19 pandemic.</p>
+    <p>Trump’s 2018 tariffs targeted imported goods like steel, aluminum, and washing machines in an effort to protect U.S. industries. While they aimed to boost domestic manufacturing, the tariffs raised costs for American businesses and consumers. Prices surged, especially for products like washing machines, as companies passed on the added expense.</p>
+    <h2>How did washing machine prices change because of the 2018 tariffs?</h2>
+    <p> In early 2018, the Trump administration imposed tariffs on imported washing machines and steel. This caused immediate price hikes as manufacturers passed the added costs to consumers. By 2019, prices remained elevated, and when the COVID-19 pandemic hit in 2020, global supply chain disruptions pushed prices even higher. Though some relief came in the following years, prices didn’t significantly drop until the tariffs expired in 2023. This visual breakdown shows how a $500 washing machine in 2017 could cost over $700 just a few years later.</p>
     <svg id="washchart" width="900" height="500"></svg>
-
+    
     <section id="scrolly">
       <article>
-          <div class="step" data-step="0">
-              <div class="scale-labels">
-                  <h3>Kaiser Permanente?</h3>
-                  <p>Industry average denials.</p>
-              </div>
-          </div>
-          <div class="step" data-step="1">
-              <div class="scale-labels">
-              <h3>Aetna?</h3>
-              <p>Wow, that's a lot of claims denied.</p>
-              </div>
-          </div>
-          <div class="step" data-step="2">
-              <div class="scale-labels">
-              <h3>Anthem?</h3>
-              <p>Even more than Aetna, yikes</p>
-              </div>
-          </div>
-          <div class="step" data-step="3">
-              <div class="scale-labels">
-              <h3>Medica?</h3>
-              <p>So many claims denied, and for what? The profit isn't even as high as the first 3.</p>
-              </div>
-          </div>
-          <div class="step" data-step="4">
-              <div class="scale-labels">
-              <h3>UnitedHealth Group?</h3>
-              <p>32% of claims denied??? 371 Billion in profit??? I wonder if this is why people are so numbed by their CEO dying.</p>
-              </div>
-          </div>
+        <div class="step" data-year="2017"><h3>2017</h3><p>Before tariffs this washing machine would have cost you $700.</p> <img src="images/700.png" alt="washing machine">
+        </div>
+        <div class="step" data-year="2018"><h3>2018</h3><p>When tariffs began in 2018, the prices of washing machines surged, so that same washing machine is now $840.</p> <img src="images/840.png" alt="washing machine"></div>
+        <div class="step" data-year="2020"><h3>2020</h3><p>In 2020, COVID began this led to supply chain disruptions, higher demand for home appliances, and continued tariffs led to additional increases. That same washing machine is now $980.</p> <img src="images/980.png" alt="washing machine"></div>
+        <div class="step" data-year="2023"><h3>2023</h3><p> In 2023 tariffs lifted and global trade stabilizing, prices began to ease but didn't return to pre-2018 levels due to lingering inflation and costs.</p> <img src="images/882.png" alt="washing machine"></div>
       </article>
-
       <figure>
-          <div class="graph" data-graph-type="bar">
-              <svg class="scales"></svg>
-          </div>
+        <svg id="priceChart" width="500" height="400"></svg>
       </figure>
+    </section>
   </section>
 
+  <section id="future">
+    <h2>What will the future hold?</h2>
+    <img src="images/placeholder.png" alt="placeholder">
+    <p> </p>
+  </section>
 
+  <section id="reaction">
 
     <h2>How are businesses reacting to Trump's Tariffs?</h2>
     <p> Click on any of the circles for more information</p>
@@ -119,17 +299,28 @@
         <option value="All">All</option>
       </select>
     </div>
+    <div id="bubble-legend">
+      <div class="legend-row">
+        <span class="legend-bubble" style="border: 3px solid #2ca02c;"></span> Positive
+        <span class="legend-bubble" style="border: 3px solid #ff7f0e; margin-left: 1.5em;"></span> Neutral
+        <span class="legend-bubble" style="border: 3px solid #d62728; margin-left: 1.5em;"></span> Negative
+      </div>
+      <div class="legend-row" style="margin-top: 0.7em;">
+        <span class="legend-bubble" style="width: 18px; height: 18px; border: 3px solid #aaa; background: #fff2; margin-right: 0.5em;"></span>
+        <span style="font-size: 0.98em; color: #f3f3f3;">Bubble size = Market Cap</span>
+      </div>
+    </div>
     <div id="chart">
       <svg id="viz" width="800" height="800"></svg>
       <div id="details">
-        <h3>Reaction</h3>
+        <h2>Reaction</h2>
         <p id="reaction-text">Click a bubble to view details.</p>
       </div>
     </div>
 
     <p> Source: <a href="https://www.freightwaves.com/news/20-company-reactions-good-and-bad-to-trumps-tariff-war">Freight Waves</a> and <a href="https://www.pbs.org/newshour/show/how-businesses-are-dealing-with-the-impacts-of-trumps-tariff-policies">PBS</a></p>
 
-
+  </section>
 
     <script>
         const choropleth = d3.select("#choropleth");
@@ -264,7 +455,7 @@
           g.append("path")
             .datum(data)
             .attr("class", "line")
-            .attr("fill", "none")  // <-- THIS LINE PREVENTS SHADING
+            .attr("stroke", "white")
             .attr("d", d3.line()
               .x(d => x(d.Date))
               .y(d => y(d.Value))
@@ -284,7 +475,7 @@
               .attr("x1", x(eventDate))
               .attr("x2", x(eventDate))
               .attr("y1", 0)
-              .attr("y2", height)
+              .attr("y2", washheight)
               .attr("stroke", e.color)
               .attr("stroke-dasharray", "4,4");
 
@@ -301,16 +492,189 @@
             .attr("x", margin.left + washwidth / 2)
             .attr("y", washsvg.attr("height") - 10)
             .attr("text-anchor", "middle")
-            .text("Year");
+            .text("Year")
+            .attr("fill", "white");
 
           washsvg.append("text")
             .attr("x", -washheight / 2 - margin.top)
             .attr("y", 15)
             .attr("transform", "rotate(-90)")
             .attr("text-anchor", "middle")
-            .text("Price Index");
+            .text("Price Index")
+            .attr("fill", "white");
         });
 
+        //scrollama washing machine
+        const washingMachinePrices = [
+          { year: 2017, price: 700 },
+          { year: 2018, price: 840 },
+          { year: 2020, price: 980 },
+          { year: 2023, price: 882 }
+        ];
+
+        const dollarImageURL = "images/dollar.jpg";
+        const moneysvg = d3.select("#priceChart");
+        const imageHeight = 40;
+        const spacing = 5;
+        const svgWidth = 1000;
+        const svgHeight = 400;
+        const barWidth = 60;
+        const barSpacing = 20;
+
+        // Set up the SVG
+        moneysvg
+          .attr("width", svgWidth)
+          .attr("height", svgHeight);
+
+        // Create scales
+        const xScale = d3.scaleBand()
+          .domain(washingMachinePrices.map(d => d.year.toString()))
+          .range([50, svgWidth - 50])
+          .padding(0.25);
+
+        const yScale = d3.scaleLinear()
+          .domain([0, d3.max(washingMachinePrices, d => d.price)])
+          .range([svgHeight - 50, 50]);
+
+        function updateChart(year) {
+          const yearsToShow = washingMachinePrices.filter(d => d.year <= +year);
+
+          moneysvg.selectAll("*").remove();
+
+          const leftPadding = 80;
+          const svgWidth = leftPadding * 2 + (barWidth + barSpacing) * (washingMachinePrices.length - 1);
+          moneysvg.attr("width", svgWidth);
+
+          const xScale = d3.scaleBand()
+            .domain(washingMachinePrices.map(d => d.year.toString()))
+            .range([leftPadding, svgWidth - leftPadding])
+            .padding(0.25);
+
+          yearsToShow.forEach((d, idx) => {
+            moneysvg.append("rect")
+              .attr("x", xScale(d.year.toString()))
+              .attr("y", yScale(d.price))
+              .attr("width", barWidth)
+              .attr("height", svgHeight - yScale(d.price) - 50)
+              .attr("fill", "#fffde7");
+
+            // Add year label
+            moneysvg.append("text")
+              .attr("x", xScale(d.year.toString()) + barWidth/2)
+              .attr("y", svgHeight - 30)
+              .attr("text-anchor", "middle")
+              .text(d.year)
+              .attr("fill", "white");
+
+
+            // Add price label
+            moneysvg.append("text")
+              .attr("x", xScale(d.year.toString()) + barWidth/2)
+              .attr("y", yScale(d.price) - 10)
+              .attr("text-anchor", "middle")
+              .attr("font-weight", "bold")
+              .attr("font-size", "1.5em")
+              .text(`$${d.price}`)
+              .attr("fill", "white");
+
+            // Draw static money images for all previous bars (no animation)
+            if (idx < yearsToShow.length - 1) {
+              const barHeight = svgHeight - yScale(d.price) - 50;
+              const billCount = Math.round(d.price / 100);
+              const billHeight = barHeight / billCount;
+              const billWidth = barWidth * 0.95;
+              for (let i = 0; i < billCount; i++) {
+                moneysvg.append("image")
+                  .attr("xlink:href", dollarImageURL)
+                  .attr("width", billWidth)
+                  .attr("height", billHeight)
+                  .attr("x", xScale(d.year.toString()) + (barWidth - billWidth) / 2)
+                  .attr("y", yScale(d.price) + i * billHeight)
+                  .attr("opacity", 1);
+              }
+            }
+          });
+
+          // Animate money falling for the latest year
+          const latest = yearsToShow[yearsToShow.length - 1];
+          const latestBarHeight = svgHeight - yScale(latest.price) - 50;
+          const latestBillCount = Math.round(latest.price / 100);
+          const latestBillHeight = latestBarHeight / latestBillCount;
+          const latestBillWidth = barWidth * 0.95;
+
+          const moneyImages = moneysvg.selectAll(".falling-money")
+            .data(d3.range(latestBillCount))
+            .enter()
+            .append("image")
+            .attr("class", "falling-money")
+            .attr("xlink:href", dollarImageURL)
+            .attr("width", latestBillWidth)
+            .attr("height", latestBillHeight)
+            .attr("x", xScale(latest.year.toString()) + (barWidth - latestBillWidth) / 2)
+            .attr("y", -latestBillHeight)
+            .attr("opacity", 1);
+
+          moneyImages.transition()
+            .duration(1000)
+            .delay((d, i) => i * 100)
+            .attr("y", (d, i) => yScale(latest.price) + (i * latestBillHeight))
+            .attr("opacity", 1)
+            .on("end", function(_, i) {
+              // Only after the last bill animates, draw the static bills for the latest bar
+              if (i === latestBillCount - 1) {
+                // Remove the falling money images
+                moneysvg.selectAll(".falling-money").remove();
+                // Draw static bills for the latest bar
+                for (let j = 0; j < latestBillCount; j++) {
+                  moneysvg.append("image")
+                    .attr("xlink:href", dollarImageURL)
+                    .attr("width", latestBillWidth)
+                    .attr("height", latestBillHeight)
+                    .attr("x", xScale(latest.year.toString()) + (barWidth - latestBillWidth) / 2)
+                    .attr("y", yScale(latest.price) + j * latestBillHeight)
+                    .attr("opacity", 1);
+                }
+              }
+            });
+        }
+
+        // Scrollama setup
+        var scroller = scrollama();
+
+        function handleResize() {
+          var stepH = Math.floor(window.innerHeight * 0.75);
+          d3.selectAll(".step").style("height", stepH + "px");
+          scroller.resize();
+        }
+
+        function handleStepEnter(response) {
+          const year = response.element.dataset.year;
+          updateChart(year);
+        }
+
+        function init() {
+          handleResize();
+
+          scroller
+            .setup({
+              step: "#scrolly article .step",
+              offset: 0.5,
+              debug: false,
+              progress: true
+            })
+            .onStepEnter(handleStepEnter)
+            .onStepExit(response => {
+              // Optional: Add exit animation if needed
+            });
+
+          // Initial chart
+          updateChart(2017);
+        }
+
+        init();
+
+        // Handle resize
+        window.addEventListener("resize", handleResize);
 
         // business bubble
         const width = 800;
@@ -354,6 +718,21 @@
               .attr("class", "bubble")
               .on("click", function(event, d) {
                   d3.select("#reaction-text").text(d.data.Reaction);
+              })
+              .on("mouseover", function(event, d) {
+                // Highlight hovered bubble, dim others
+                svg.selectAll(".bubble")
+                  .classed("dimmed", true)
+                  .classed("highlighted", false);
+                d3.select(this)
+                  .classed("dimmed", false)
+                  .classed("highlighted", true);
+              })
+              .on("mouseout", function(event, d) {
+                // Remove highlight/dim
+                svg.selectAll(".bubble")
+                  .classed("dimmed", false)
+                  .classed("highlighted", false);
               });
               
             node.append("circle")
