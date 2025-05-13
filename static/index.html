@@ -385,10 +385,12 @@
                         const tariff = countryTariffs[name];
                         return tariff != null ? colorScale(tariff) : "#ccc";
                       })
+                      .style("stroke", "black")       
+                      .style("stroke-width", 1)  
                       .on("mouseover", function (event, d) {
                         d3.select(this)
-                          .attr("stroke", "#000000")
-                          .attr("stroke-width", 2)
+                          .style("stroke", "#000000")
+                          .style("stroke-width", 3)
                           .raise();
                         tooltip
                           .style("display", "block")
@@ -398,8 +400,8 @@
                       })
                       .on("mouseout", function () {
                         d3.select(this)
-                          .attr("stroke", "none");
-
+                          .style("stroke", "black")         
+                          .style("stroke-width", 1);    
                         tooltip.style("display", "none");
                       });
                     
