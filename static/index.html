@@ -286,6 +286,101 @@
           color: #f3f3f3;
         }
 
+        #item-grid {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 2rem;
+          justify-content: center;
+        }
+
+        .catalog-card {
+          width: 250px;
+          background: #1e1e1e;
+          border-radius: 10px;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+          overflow: hidden;
+          position: relative;
+          font-family: 'Lora', serif;
+          transition: transform 0.3s ease;
+        }
+
+        .catalog-card:hover {
+          transform: translateY(-5px);
+        }
+
+        .catalog-card img {
+          width: 100%;
+          height: 140px;
+          object-fit: contain;
+          background-color: #151616;
+          padding: 0.5rem;
+        }
+
+        .catalog-info {
+          display: flex;
+          flex-direction: row;
+          align-items: flex-start;
+          padding: 0.75rem;
+        }
+
+        .catalog-price {
+          font-size: 1.1em;
+          flex: 1;
+          color: #f3f3f3;
+        }
+
+        .catalog-price .old-price {
+          text-decoration: none;
+          transition: all 0.3s ease;
+        }
+
+        .catalog-price .new-price {
+          display: none;
+          color: #d62728;
+          font-weight: bold;
+          margin-left: 0.4em;
+        }
+
+        .catalog-card:hover .old-price {
+          text-decoration: line-through;
+          opacity: 0.6;
+        }
+
+        .catalog-card:hover .new-price {
+          display: inline;
+        }
+
+        .catalog-name {
+          flex: 1;
+          margin-left: 0.5rem;
+          font-size: 0.95em;
+          font-weight: bold;
+          color: #f3f3f3;
+          text-align: right;
+        }
+
+        .tariff-banner {
+          position: absolute;
+          top: 0;
+          right: 0;
+          width: 50px;
+          height: 35px;
+          background: #ff3b3b; 
+          color: white;
+          font-size: 0.85em;
+          font-weight: bold;
+          text-align: center;
+          padding-top: 10px;
+          clip-path: polygon(0 0, 100% 0, 100% 85%, 50% 100%, 0 85%);
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+          display: none;
+          z-index: 1;
+        }
+
+        .catalog-card:hover .tariff-banner {
+          display: block;
+        }
+
     </style>
 </head>
 <body>
@@ -337,15 +432,13 @@
       </figure>
     </section>
   </section>
-
-  <section id="future">
+  
+  <section id="item-prices">
     <h2>What will the future hold?</h2>
-    <img src="images/placeholder.png" alt="placeholder">
-    <p> </p>
+    <div id="item-grid" style="display: flex; flex-wrap: wrap; gap: 2rem; justify-content: center;"></div>
   </section>
 
   <section id="reaction">
-
     <h2>How are businesses reacting to Trump's Tariffs?</h2>
     <p> Click on any of the circles for more information</p>
     <div class="dropdown">
@@ -372,452 +465,476 @@
         <p id="reaction-text">Click a bubble to view details.</p>
       </div>
     </div>
-
     <p> Source: <a href="https://www.freightwaves.com/news/20-company-reactions-good-and-bad-to-trumps-tariff-war">Freight Waves</a> and <a href="https://www.pbs.org/newshour/show/how-businesses-are-dealing-with-the-impacts-of-trumps-tariff-policies">PBS</a></p>
-
   </section>
+  <script>
+    const choropleth = d3.select("#choropleth");
+    const mapWidth = choropleth.attr("width");
+    const mapHeight = choropleth.attr("height");
+    const mapMargin = { top: 20, right: 20, bottom: 20, left: 20};
+    const mapAreaWidth = mapWidth - mapMargin.left - mapMargin.right;
+    const mapAreaHeight = mapHeight - mapMargin.top - mapMargin.bottom;
+    const map = choropleth.append("g")
+    const tooltip = d3.select("#tooltip");
+      
+    const requestData = async function () {
 
-    <script>
-        const choropleth = d3.select("#choropleth");
-        const mapWidth = choropleth.attr("width");
-        const mapHeight = choropleth.attr("height");
-        const mapMargin = { top: 20, right: 20, bottom: 20, left: 20};
-        const mapAreaWidth = mapWidth - mapMargin.left - mapMargin.right;
-        const mapAreaHeight = mapHeight - mapMargin.top - mapMargin.bottom;
-        const map = choropleth.append("g")
-        const tooltip = d3.select("#tooltip");
-        
-        const requestData = async function () {
+      const world = await d3.json("dataset/countries-110m.json");
+      const tariffData = await d3.csv("dataset/all.csv", d3.autoType);
 
-          const world = await d3.json("dataset/countries-110m.json");
-          const tariffData = await d3.csv("dataset/all.csv", d3.autoType);
+      var countries = topojson.feature(world, world.objects.countries);     
+      var countriesMesh = topojson.mesh(world, world.objects.countries);    
+      var projection = d3.geoEqualEarth().fitSize([mapWidth, mapHeight], countries);
+      var path = d3.geoPath().projection(projection);
 
-          var countries = topojson.feature(world, world.objects.countries);     
-          var countriesMesh = topojson.mesh(world, world.objects.countries);    
-          var projection = d3.geoEqualEarth().fitSize([mapWidth, mapHeight], countries);
-          var path = d3.geoPath().projection(projection);
+      const minMax = d3.extent(tariffData, d => d["Tariffs Charged to USA (%)"]);
+      const colorScale = d3.scaleQuantile()
+        .domain(minMax)
+        .range(["#fff","#d1e8ed","#adc2da","#8879b3","#762b80"]);
 
-          const minMax = d3.extent(tariffData, d => d["Tariffs Charged to USA (%)"]);
-          const colorScale = d3.scaleQuantile()
-            .domain(minMax)
-            .range(["#fff","#d1e8ed","#adc2da","#8879b3","#762b80"]);
-
-          const countryTariffs = {};
-            tariffData.forEach(d => {
-              countryTariffs[d.Country.trim()] = d["Tariffs Charged to USA (%)"];
-            });
-
-          map.selectAll("path.country").data(countries.features)
-                       .join("path")
-                       .attr("class", "country")
-                       .attr("note", d => d.id) 
-                       .attr("d", path)
-                       .style("fill", d => {
-                        const name = d.properties.name;
-                        const tariff = countryTariffs[name];
-                        return tariff != null ? colorScale(tariff) : "#ccc";
-                      })
-                      .style("stroke", "black")       
-                      .style("stroke-width", 1)  
-                      .on("mouseover", function (event, d) {
-                        d3.select(this)
-                          .style("stroke", "#000000")
-                          .style("stroke-width", 3)
-                          .raise();
-                        tooltip
-                          .style("display", "block")
-                          .style("left", event.pageX + 10 + "px")
-                          .style("top", event.pageY - 20 + "px")
-                          .html(`<strong>${d.properties.name}</strong><br>Tariff: ${countryTariffs[d.properties.name] ?? "N/A"}%`);
-                      })
-                      .on("mouseout", function () {
-                        d3.select(this)
-                          .style("stroke", "black")         
-                          .style("stroke-width", 1);    
-                        tooltip.style("display", "none");
-                      });
-                    
-          map.append("path").datum(countriesMesh)
-            .attr("class","outline")
-            .attr("d", path);
-
-
-            const legendDiv = d3.select("#legend-overlay");
-            legendDiv.append("div")
-              .style("font-weight", "bold")
-              .style("margin-bottom", "6px")
-              .text("Tariffs Charged to USA (%)");
-
-            const thresholds = colorScale.quantiles();
-            const colors = colorScale.range();
-
-            colors.forEach((color, i) => {
-              const from = i === 0 ? minMax[0] : thresholds[i - 1];
-              const to = thresholds[i];
-
-              const label = (i === colors.length - 1)
-                ? `${from.toFixed(1)}+`
-                : `${from.toFixed(1)} - ${to.toFixed(1)}`;
-
-              const entry = legendDiv.append("div")
-                .attr("class", "legend-entry");
-
-              entry.append("div")
-                .attr("class", "legend-color")
-                .style("background", color);
-
-              entry.append("span").text(label);
-
-          
+      const countryTariffs = {};
+        tariffData.forEach(d => {
+          countryTariffs[d.Country.trim()] = d["Tariffs Charged to USA (%)"];
         });
 
-        };
-        requestData();
+      map.selectAll("path.country").data(countries.features)
+                    .join("path")
+                    .attr("class", "country")
+                    .attr("note", d => d.id) 
+                    .attr("d", path)
+                    .style("fill", d => {
+                    const name = d.properties.name;
+                    const tariff = countryTariffs[name];
+                    return tariff != null ? colorScale(tariff) : "#ccc";
+                  })
+                  .style("stroke", "black")       
+                  .style("stroke-width", 1)  
+                  .on("mouseover", function (event, d) {
+                    d3.select(this)
+                      .style("stroke", "#000000")
+                      .style("stroke-width", 3)
+                      .raise();
+                    tooltip
+                      .style("display", "block")
+                      .style("left", event.pageX + 10 + "px")
+                      .style("top", event.pageY - 20 + "px")
+                      .html(`<strong>${d.properties.name}</strong><br>Tariff: ${countryTariffs[d.properties.name] ?? "N/A"}%`);
+                  })
+                  .on("mouseout", function () {
+                    d3.select(this)
+                      .style("stroke", "black")         
+                      .style("stroke-width", 1);    
+                    tooltip.style("display", "none");
+                  });
+                
+      map.append("path").datum(countriesMesh)
+        .attr("class","outline")
+        .attr("d", path);
 
-        //washing machine
-        const washsvg = d3.select("#washchart");
-        const margin = {top: 50, right: 30, bottom: 50, left: 60},
-              washwidth = +washsvg.attr("width") - margin.left - margin.right,
-              washheight = +washsvg.attr("height") - margin.top - margin.bottom;
+      const legendDiv = d3.select("#legend-overlay");
+      legendDiv.append("div")
+        .style("font-weight", "bold")
+        .style("margin-bottom", "6px")
+        .text("Tariffs Charged to USA (%)");
 
-        const parseDate = d3.timeParse("%Y %b");
-        const g = washsvg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+      const thresholds = colorScale.quantiles();
+      const colors = colorScale.range();
 
-        d3.csv("dataset/washing.csv").then(data => {
-          data.forEach(d => {
-            d.Date = parseDate(d.Label); 
-            d.Value = +d.Value;
-          });
+      colors.forEach((color, i) => {
+        const from = i === 0 ? minMax[0] : thresholds[i - 1];
+        const to = thresholds[i];
 
+        const label = (i === colors.length - 1)
+          ? `${from.toFixed(1)}+`
+          : `${from.toFixed(1)} - ${to.toFixed(1)}`;
 
-        const x = d3.scaleTime()
-          .domain(d3.extent(data, d => d.Date))
-          .range([0, washwidth]);
+        const entry = legendDiv.append("div")
+          .attr("class", "legend-entry");
 
-        const y = d3.scaleLinear()
-          .domain([d3.min(data, d => d.Value) - 2, d3.max(data, d => d.Value) + 2])
-          .range([washheight, 0]);
+        entry.append("div")
+          .attr("class", "legend-color")
+          .style("background", color);
 
-        // Also update axis transforms accordingly:
-        g.append("g")
-          .attr("transform", `translate(0,${washheight})`)
-          .call(d3.axisBottom(x));
+        entry.append("span").text(label);
+    });
 
+    };
+    requestData();
 
-          g.append("g")
-            .call(d3.axisLeft(y));
+    //washing machine
+    const washsvg = d3.select("#washchart");
+    const margin = {top: 50, right: 30, bottom: 50, left: 60},
+          washwidth = +washsvg.attr("width") - margin.left - margin.right,
+          washheight = +washsvg.attr("height") - margin.top - margin.bottom;
 
-          // Draw the line
-          g.append("path")
-            .datum(data)
-            .attr("class", "line")
-            .attr("stroke", "white")
-            .attr("d", d3.line()
-              .x(d => x(d.Date))
-              .y(d => y(d.Value))
-            );
+    const parseDate = d3.timeParse("%Y %b");
+    const g = washsvg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
 
-          // Add labels for events
-          const events = [
-            { date: "2018-01-01", label: "Tariffs Begin", color: "red" },
-            { date: "2020-03-01", label: "COVID-19 Pandemic", color: "purple" },
-            { date: "2023-02-01", label: "Tariffs Expire", color: "green" }
-          ];
-
-
-          events.forEach(e => {
-            const eventDate = d3.timeParse("%Y-%m-%d")(e.date);
-            g.append("line")
-              .attr("x1", x(eventDate))
-              .attr("x2", x(eventDate))
-              .attr("y1", 0)
-              .attr("y2", washheight)
-              .attr("stroke", e.color)
-              .attr("stroke-dasharray", "4,4");
-
-            g.append("text")
-              .attr("x", x(eventDate) + 5)
-              .attr("y", 20)
-              .attr("fill", e.color)
-              .attr("class", "annotation")
-              .text(e.label);
-          });
-
-          // Axis labels
-          washsvg.append("text")
-            .attr("x", margin.left + washwidth / 2)
-            .attr("y", washsvg.attr("height") - 10)
-            .attr("text-anchor", "middle")
-            .text("Year")
-            .attr("fill", "white");
-
-          washsvg.append("text")
-            .attr("x", -washheight / 2 - margin.top)
-            .attr("y", 15)
-            .attr("transform", "rotate(-90)")
-            .attr("text-anchor", "middle")
-            .text("Price Index")
-            .attr("fill", "white");
-        });
-
-        //scrollama washing machine
-        const washingMachinePrices = [
-          { year: 2017, price: 700 },
-          { year: 2018, price: 840 },
-          { year: 2020, price: 980 },
-          { year: 2023, price: 882 }
-        ];
-
-        const dollarImageURL = "images/dollar.jpg";
-        const moneysvg = d3.select("#priceChart");
-        const imageHeight = 40;
-        const spacing = 5;
-        const svgWidth = 1000;
-        const svgHeight = 400;
-        const barWidth = 60;
-        const barSpacing = 20;
-
-        // Set up the SVG
-        moneysvg
-          .attr("width", svgWidth)
-          .attr("height", svgHeight);
-
-        // Create scales
-        const xScale = d3.scaleBand()
-          .domain(washingMachinePrices.map(d => d.year.toString()))
-          .range([50, svgWidth - 50])
-          .padding(0.25);
-
-        const yScale = d3.scaleLinear()
-          .domain([0, d3.max(washingMachinePrices, d => d.price)])
-          .range([svgHeight - 50, 50]);
-
-        function updateChart(year) {
-          const yearsToShow = washingMachinePrices.filter(d => d.year <= +year);
-
-          moneysvg.selectAll("*").remove();
-
-          const leftPadding = 80;
-          const svgWidth = leftPadding * 2 + (barWidth + barSpacing) * (washingMachinePrices.length - 1);
-          moneysvg.attr("width", svgWidth);
-
-          const xScale = d3.scaleBand()
-            .domain(washingMachinePrices.map(d => d.year.toString()))
-            .range([leftPadding, svgWidth - leftPadding])
-            .padding(0.25);
-
-          yearsToShow.forEach((d, idx) => {
-            moneysvg.append("rect")
-              .attr("x", xScale(d.year.toString()))
-              .attr("y", yScale(d.price))
-              .attr("width", barWidth)
-              .attr("height", svgHeight - yScale(d.price) - 50)
-              .attr("fill", "#fffde7");
-
-            // Add year label
-            moneysvg.append("text")
-              .attr("x", xScale(d.year.toString()) + barWidth/2)
-              .attr("y", svgHeight - 30)
-              .attr("text-anchor", "middle")
-              .text(d.year)
-              .attr("fill", "white");
+    d3.csv("dataset/washing.csv").then(data => {
+      data.forEach(d => {
+        d.Date = parseDate(d.Label); 
+        d.Value = +d.Value;
+      });
 
 
-            // Add price label
-            moneysvg.append("text")
-              .attr("x", xScale(d.year.toString()) + barWidth/2)
-              .attr("y", yScale(d.price) - 10)
-              .attr("text-anchor", "middle")
-              .attr("font-weight", "bold")
-              .attr("font-size", "1.5em")
-              .text(`$${d.price}`)
-              .attr("fill", "white");
+    const x = d3.scaleTime()
+      .domain(d3.extent(data, d => d.Date))
+      .range([0, washwidth]);
 
-            // Draw static money images for all previous bars (no animation)
-            if (idx < yearsToShow.length - 1) {
-              const barHeight = svgHeight - yScale(d.price) - 50;
-              const billCount = Math.round(d.price / 100);
-              const billHeight = barHeight / billCount;
-              const billWidth = barWidth * 0.95;
-              for (let i = 0; i < billCount; i++) {
-                moneysvg.append("image")
-                  .attr("xlink:href", dollarImageURL)
-                  .attr("width", billWidth)
-                  .attr("height", billHeight)
-                  .attr("x", xScale(d.year.toString()) + (barWidth - billWidth) / 2)
-                  .attr("y", yScale(d.price) + i * billHeight)
-                  .attr("opacity", 1);
-              }
+    const y = d3.scaleLinear()
+      .domain([d3.min(data, d => d.Value) - 2, d3.max(data, d => d.Value) + 2])
+      .range([washheight, 0]);
+
+    // Also update axis transforms accordingly:
+    g.append("g")
+      .attr("transform", `translate(0,${washheight})`)
+      .call(d3.axisBottom(x));
+
+
+      g.append("g")
+        .call(d3.axisLeft(y));
+
+      // Draw the line
+      g.append("path")
+        .datum(data)
+        .attr("class", "line")
+        .attr("stroke", "white")
+        .attr("d", d3.line()
+          .x(d => x(d.Date))
+          .y(d => y(d.Value))
+        );
+
+      // Add labels for events
+      const events = [
+        { date: "2018-01-01", label: "Tariffs Begin", color: "red" },
+        { date: "2020-03-01", label: "COVID-19 Pandemic", color: "purple" },
+        { date: "2023-02-01", label: "Tariffs Expire", color: "green" }
+      ];
+
+
+      events.forEach(e => {
+        const eventDate = d3.timeParse("%Y-%m-%d")(e.date);
+        g.append("line")
+          .attr("x1", x(eventDate))
+          .attr("x2", x(eventDate))
+          .attr("y1", 0)
+          .attr("y2", washheight)
+          .attr("stroke", e.color)
+          .attr("stroke-dasharray", "4,4");
+
+        g.append("text")
+          .attr("x", x(eventDate) + 5)
+          .attr("y", 20)
+          .attr("fill", e.color)
+          .attr("class", "annotation")
+          .text(e.label);
+      });
+
+      // Axis labels
+      washsvg.append("text")
+        .attr("x", margin.left + washwidth / 2)
+        .attr("y", washsvg.attr("height") - 10)
+        .attr("text-anchor", "middle")
+        .text("Year")
+        .attr("fill", "white");
+
+      washsvg.append("text")
+        .attr("x", -washheight / 2 - margin.top)
+        .attr("y", 15)
+        .attr("transform", "rotate(-90)")
+        .attr("text-anchor", "middle")
+        .text("Price Index")
+        .attr("fill", "white");
+    });
+
+      //scrollama washing machine
+    const washingMachinePrices = [
+      { year: 2017, price: 700 },
+      { year: 2018, price: 840 },
+      { year: 2020, price: 980 },
+      { year: 2023, price: 882 }
+    ];
+
+    const dollarImageURL = "images/dollar.jpg";
+    const moneysvg = d3.select("#priceChart");
+    const imageHeight = 40;
+    const spacing = 5;
+    const svgWidth = 1000;
+    const svgHeight = 400;
+    const barWidth = 60;
+    const barSpacing = 20;
+
+    // Set up the SVG
+    moneysvg
+      .attr("width", svgWidth)
+      .attr("height", svgHeight);
+
+    // Create scales
+    const xScale = d3.scaleBand()
+      .domain(washingMachinePrices.map(d => d.year.toString()))
+      .range([50, svgWidth - 50])
+      .padding(0.25);
+
+    const yScale = d3.scaleLinear()
+      .domain([0, d3.max(washingMachinePrices, d => d.price)])
+      .range([svgHeight - 50, 50]);
+
+    function updateChart(year) {
+      const yearsToShow = washingMachinePrices.filter(d => d.year <= +year);
+
+      moneysvg.selectAll("*").remove();
+
+      const leftPadding = 80;
+      const svgWidth = leftPadding * 2 + (barWidth + barSpacing) * (washingMachinePrices.length - 1);
+      moneysvg.attr("width", svgWidth);
+
+      const xScale = d3.scaleBand()
+        .domain(washingMachinePrices.map(d => d.year.toString()))
+        .range([leftPadding, svgWidth - leftPadding])
+        .padding(0.25);
+
+      yearsToShow.forEach((d, idx) => {
+        moneysvg.append("rect")
+          .attr("x", xScale(d.year.toString()))
+          .attr("y", yScale(d.price))
+          .attr("width", barWidth)
+          .attr("height", svgHeight - yScale(d.price) - 50)
+          .attr("fill", "#fffde7");
+
+        // Add year label
+        moneysvg.append("text")
+          .attr("x", xScale(d.year.toString()) + barWidth/2)
+          .attr("y", svgHeight - 30)
+          .attr("text-anchor", "middle")
+          .text(d.year)
+          .attr("fill", "white");
+
+
+        // Add price label
+        moneysvg.append("text")
+          .attr("x", xScale(d.year.toString()) + barWidth/2)
+          .attr("y", yScale(d.price) - 10)
+          .attr("text-anchor", "middle")
+          .attr("font-weight", "bold")
+          .attr("font-size", "1.5em")
+          .text(`$${d.price}`)
+          .attr("fill", "white");
+
+        // Draw static money images for all previous bars (no animation)
+        if (idx < yearsToShow.length - 1) {
+          const barHeight = svgHeight - yScale(d.price) - 50;
+          const billCount = Math.round(d.price / 100);
+          const billHeight = barHeight / billCount;
+          const billWidth = barWidth * 0.95;
+          for (let i = 0; i < billCount; i++) {
+            moneysvg.append("image")
+              .attr("xlink:href", dollarImageURL)
+              .attr("width", billWidth)
+              .attr("height", billHeight)
+              .attr("x", xScale(d.year.toString()) + (barWidth - billWidth) / 2)
+              .attr("y", yScale(d.price) + i * billHeight)
+              .attr("opacity", 1);
+          }
+        }
+      });
+
+      // Animate money falling for the latest year
+      const latest = yearsToShow[yearsToShow.length - 1];
+      const latestBarHeight = svgHeight - yScale(latest.price) - 50;
+      const latestBillCount = Math.round(latest.price / 100);
+      const latestBillHeight = latestBarHeight / latestBillCount;
+      const latestBillWidth = barWidth * 0.95;
+
+      const moneyImages = moneysvg.selectAll(".falling-money")
+        .data(d3.range(latestBillCount))
+        .enter()
+        .append("image")
+        .attr("class", "falling-money")
+        .attr("xlink:href", dollarImageURL)
+        .attr("width", latestBillWidth)
+        .attr("height", latestBillHeight)
+        .attr("x", xScale(latest.year.toString()) + (barWidth - latestBillWidth) / 2)
+        .attr("y", -latestBillHeight)
+        .attr("opacity", 1);
+
+      moneyImages.transition()
+        .duration(1000)
+        .delay((d, i) => i * 100)
+        .attr("y", (d, i) => yScale(latest.price) + (i * latestBillHeight))
+        .attr("opacity", 1)
+        .on("end", function(_, i) {
+          // Only after the last bill animates, draw the static bills for the latest bar
+          if (i === latestBillCount - 1) {
+            // Remove the falling money images
+            moneysvg.selectAll(".falling-money").remove();
+            // Draw static bills for the latest bar
+            for (let j = 0; j < latestBillCount; j++) {
+              moneysvg.append("image")
+                .attr("xlink:href", dollarImageURL)
+                .attr("width", latestBillWidth)
+                .attr("height", latestBillHeight)
+                .attr("x", xScale(latest.year.toString()) + (barWidth - latestBillWidth) / 2)
+                .attr("y", yScale(latest.price) + j * latestBillHeight)
+                .attr("opacity", 1);
             }
-          });
-
-          // Animate money falling for the latest year
-          const latest = yearsToShow[yearsToShow.length - 1];
-          const latestBarHeight = svgHeight - yScale(latest.price) - 50;
-          const latestBillCount = Math.round(latest.price / 100);
-          const latestBillHeight = latestBarHeight / latestBillCount;
-          const latestBillWidth = barWidth * 0.95;
-
-          const moneyImages = moneysvg.selectAll(".falling-money")
-            .data(d3.range(latestBillCount))
-            .enter()
-            .append("image")
-            .attr("class", "falling-money")
-            .attr("xlink:href", dollarImageURL)
-            .attr("width", latestBillWidth)
-            .attr("height", latestBillHeight)
-            .attr("x", xScale(latest.year.toString()) + (barWidth - latestBillWidth) / 2)
-            .attr("y", -latestBillHeight)
-            .attr("opacity", 1);
-
-          moneyImages.transition()
-            .duration(1000)
-            .delay((d, i) => i * 100)
-            .attr("y", (d, i) => yScale(latest.price) + (i * latestBillHeight))
-            .attr("opacity", 1)
-            .on("end", function(_, i) {
-              // Only after the last bill animates, draw the static bills for the latest bar
-              if (i === latestBillCount - 1) {
-                // Remove the falling money images
-                moneysvg.selectAll(".falling-money").remove();
-                // Draw static bills for the latest bar
-                for (let j = 0; j < latestBillCount; j++) {
-                  moneysvg.append("image")
-                    .attr("xlink:href", dollarImageURL)
-                    .attr("width", latestBillWidth)
-                    .attr("height", latestBillHeight)
-                    .attr("x", xScale(latest.year.toString()) + (barWidth - latestBillWidth) / 2)
-                    .attr("y", yScale(latest.price) + j * latestBillHeight)
-                    .attr("opacity", 1);
-                }
-              }
-            });
-        }
-
-        // Scrollama setup
-        var scroller = scrollama();
-
-        function handleResize() {
-          var stepH = Math.floor(window.innerHeight * 0.75);
-          d3.selectAll(".step").style("height", stepH + "px");
-          scroller.resize();
-        }
-
-        function handleStepEnter(response) {
-          const year = response.element.dataset.year;
-          updateChart(year);
-        }
-
-        function init() {
-          handleResize();
-
-          scroller
-            .setup({
-              step: "#scrolly article .step",
-              offset: 0.5,
-              debug: false,
-              progress: true
-            })
-            .onStepEnter(handleStepEnter)
-            .onStepExit(response => {
-              // Optional: Add exit animation if needed
-            });
-
-          // Initial chart
-          updateChart(2017);
-        }
-
-        init();
-
-        // Handle resize
-        window.addEventListener("resize", handleResize);
-
-        // business bubble
-        const width = 800;
-        const height = 500;
-
-        const svg = d3.select("#viz")
-          .attr("viewBox", [0, 0, width, height])
-          .attr("style", "font: 10px sans-serif;");
-
-        const color = d3.scaleOrdinal()
-          .domain(["Positive", "Neutral", "Negative"])
-          .range(["#2ca02c", "#ff7f0e", "#d62728"]);
-
-        d3.csv("dataset/business_reactions.csv").then(data => {
-          data.forEach(d => {
-            d.market_cap = +d.market_cap;
-          });
-
-          const categories = Array.from(new Set(data.map(d => d.Category)));
-          categories.forEach(cat => {
-            d3.select("#category-select").append("option")
-              .attr("value", cat)
-              .text(cat);
-          });
-
-          let currentData = data;
-
-          const draw = (filteredData) => {
-            svg.selectAll("*").remove();
-
-            const root = d3.pack()
-              .size([width, height])
-              .padding(5)(
-                d3.hierarchy({ children: filteredData }).sum(d => d.market_cap)
-              );
-
-            const node = svg.selectAll("g")
-              .data(root.leaves())
-              .join("g")
-              .attr("transform", d => `translate(${d.x},${d.y})`)
-              .attr("class", "bubble")
-              .on("click", function(event, d) {
-                  d3.select("#reaction-text").text(d.data.Reaction);
-              })
-              .on("mouseover", function(event, d) {
-                // Highlight hovered bubble, dim others
-                svg.selectAll(".bubble")
-                  .classed("dimmed", true)
-                  .classed("highlighted", false);
-                d3.select(this)
-                  .classed("dimmed", false)
-                  .classed("highlighted", true);
-              })
-              .on("mouseout", function(event, d) {
-                // Remove highlight/dim
-                svg.selectAll(".bubble")
-                  .classed("dimmed", false)
-                  .classed("highlighted", false);
-              });
-              
-            node.append("circle")
-              .attr("r", d => d.r + 2)  // slightly larger than image
-              .attr("fill", "none")
-              .attr("stroke", d => color(d.data.Sentiment))
-              .attr("stroke-width", 3);
-
-            node.append("image")
-              .attr("href", d => d.data.image)
-              .attr("width", d => d.r * 2)
-              .attr("height", d => d.r * 2)
-              .attr("x", d => -d.r)
-              .attr("y", d => -d.r)
-              .attr("clip-path", d => `circle(${d.r}px at ${d.r}px ${d.r}px)`);
-
-            node.append("title")
-              .text(d => `${d.data.Name}\n${d.data.Sentiment}`);
-
-          };
-
-          draw(currentData);
-
-          d3.select("#category-select").on("change", function() {
-            const selected = this.value;
-            currentData = selected === "All" ? data : data.filter(d => d.Category === selected);
-            draw(currentData);
-          });
+          }
         });
-    </script>
+    }
+
+    // Scrollama setup
+    var scroller = scrollama();
+
+    function handleResize() {
+      var stepH = Math.floor(window.innerHeight * 0.75);
+      d3.selectAll(".step").style("height", stepH + "px");
+      scroller.resize();
+    }
+
+    function handleStepEnter(response) {
+      const year = response.element.dataset.year;
+      updateChart(year);
+    }
+
+    function init() {
+      handleResize();
+
+      scroller
+        .setup({
+          step: "#scrolly article .step",
+          offset: 0.5,
+          debug: false,
+          progress: true
+        })
+        .onStepEnter(handleStepEnter)
+        .onStepExit(response => {
+          // Optional: Add exit animation if needed
+        });
+
+      // Initial chart
+      updateChart(2017);
+    }
+
+    init();
+
+    // Handle resize
+    window.addEventListener("resize", handleResize);
+
+    // business bubble
+    const width = 800;
+    const height = 500;
+
+    const svg = d3.select("#viz")
+      .attr("viewBox", [0, 0, width, height])
+      .attr("style", "font: 10px sans-serif;");
+
+    const color = d3.scaleOrdinal()
+      .domain(["Positive", "Neutral", "Negative"])
+      .range(["#2ca02c", "#ff7f0e", "#d62728"]);
+
+    d3.csv("dataset/business_reactions.csv").then(data => {
+      data.forEach(d => {
+        d.market_cap = +d.market_cap;
+      });
+
+      const categories = Array.from(new Set(data.map(d => d.Category)));
+      categories.forEach(cat => {
+        d3.select("#category-select").append("option")
+          .attr("value", cat)
+          .text(cat);
+      });
+
+      let currentData = data;
+
+      const draw = (filteredData) => {
+        svg.selectAll("*").remove();
+
+        const root = d3.pack()
+          .size([width, height])
+          .padding(5)(
+            d3.hierarchy({ children: filteredData }).sum(d => d.market_cap)
+          );
+
+        const node = svg.selectAll("g")
+          .data(root.leaves())
+          .join("g")
+          .attr("transform", d => `translate(${d.x},${d.y})`)
+          .attr("class", "bubble")
+          .on("click", function(event, d) {
+              d3.select("#reaction-text").text(d.data.Reaction);
+          })
+          .on("mouseover", function(event, d) {
+            // Highlight hovered bubble, dim others
+            svg.selectAll(".bubble")
+              .classed("dimmed", true)
+              .classed("highlighted", false);
+            d3.select(this)
+              .classed("dimmed", false)
+              .classed("highlighted", true);
+          })
+          .on("mouseout", function(event, d) {
+            // Remove highlight/dim
+            svg.selectAll(".bubble")
+              .classed("dimmed", false)
+              .classed("highlighted", false);
+          });
+          
+        node.append("circle")
+          .attr("r", d => d.r + 2)  // slightly larger than image
+          .attr("fill", "none")
+          .attr("stroke", d => color(d.data.Sentiment))
+          .attr("stroke-width", 3);
+
+        node.append("image")
+          .attr("href", d => d.data.image)
+          .attr("width", d => d.r * 2)
+          .attr("height", d => d.r * 2)
+          .attr("x", d => -d.r)
+          .attr("y", d => -d.r)
+          .attr("clip-path", d => `circle(${d.r}px at ${d.r}px ${d.r}px)`);
+
+        node.append("title")
+          .text(d => `${d.data.Name}\n${d.data.Sentiment}`);
+
+      };
+
+      draw(currentData);
+
+      d3.select("#category-select").on("change", function() {
+        const selected = this.value;
+        currentData = selected === "All" ? data : data.filter(d => d.Category === selected);
+        draw(currentData);
+      });
+    });
+
+    d3.csv("dataset/cleaned_tariff_items.csv").then(data => {
+      const grid = d3.select("#item-grid");
+
+      data.forEach(d => {
+        const card = grid.append("div").attr("class", "catalog-card");
+
+        card.append("div")
+          .attr("class", "tariff-banner")
+          .text(`\u2191${d["Tariff Rate"]}`);
+
+        card.append("img")
+          .attr("src", `images/items/${d.Image}`)
+          .attr("alt", d.Item);
+
+        const info = card.append("div").attr("class", "catalog-info");
+
+        const priceBlock = info.append("div").attr("class", "catalog-price");
+        priceBlock.append("span")
+          .attr("class", "old-price")
+          .text(`$${(+d.Price).toFixed(2)}`);
+        priceBlock.append("span")
+          .attr("class", "new-price")
+          .text(`$${(+d["Posttariff Price"]).toFixed(2)}`);
+
+        info.append("div")
+          .attr("class", "catalog-name")
+          .text(d.Item);
+      });
+    });
+  </script>
 </body>
 </html>

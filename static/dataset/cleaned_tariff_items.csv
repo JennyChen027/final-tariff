@@ -1,0 +1,15 @@
+Item,Country,Price,Tariff Rate,Posttariff Price,Difference,Image
+Jeans,Egypt,39.98,10%,43.98,4,jeans.png
+Avocado,Peru,2,10%,2.2,0.2,avocado.png
+Strawberries,Chile,5.99,10%,6.59,0.6,strawberries.png
+Coffee,Brazil,8.3,10%,9.13,0.83,coffee.png
+SUV,Mexico,31395,25%,39243.75,7848.75,suv.png
+Cashew,India,13.99,26%,17.63,3.64,cashew.png
+Soccer,Pakistan,17.99,29%,23.21,5.22,soccer.png
+Rice,Thailand,13.49,36%,18.35,4.86,rice.png
+Tea,Sri Lanka,11,44%,15.84,4.84,tea.png
+Children's Sneaker,Vietnam,52,46%,75.92,23.92,child_shoes.png
+Shrimp,Vietnam,6.29,46%,9.18,2.89,shrimp.png
+Children's Clothing Set,Cambodia,24,49%,35.76,11.76,child_set.png
+PS 5,China,499,104%,1018,519,ps5.png
+Child's Car Seat,China,59,104%,120,61,car_seat.png
