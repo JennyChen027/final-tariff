@@ -265,8 +265,27 @@
           height: 18px;
           margin-right: 8px;
           border: 1px solid #ccc;
+        } 
+        
+        .side-by-side {
+          display: flex;
+          align-items: center;
+          justify-content: space-between; /* <- key line */
+          width: 100%
         }
-    
+
+        .side-image {
+          width: 40%;
+          max-width: 600px;
+          height: auto;
+        }
+
+        .side-text {
+          flex: 1;
+          font-size: 1.1em;
+          color: #f3f3f3;
+        }
+
     </style>
 </head>
 <body>
@@ -274,6 +293,19 @@
     <h1>
         How will the trade war and Trump's Tariffs affect you?
     </h1>
+    <div class="side-by-side">
+      <img src="images/trade_war.png" alt="Trade War Image" class="side-image">
+      <div class="side-text">
+        <p>A trade war is when two or more countries raise taxes (called tariffs) on each other's goods. These actions are usually taken in response to disagreements over trade policies. The goal is to hurt the other country's economy by making their products more expensive. However, it often ends up hurting both sides, including businesses and consumers. Trade wars can lead to higher prices, job losses, and slower economic growth.</p>
+      </div>
+    </div>
+    
+    <div class="side-by-side reverse">
+      <div class="side-text">
+        <p>Tariffs are taxes that governments place on imported goods. They are created to protect local industries from foreign competition. By making imported products more expensive, tariffs encourage people to buy from domestic businesses. Sometimes, tariffs are also used to punish or pressure other countries. Governments may use them to support national interests or raise money.r</p>
+      </div>
+      <img src="images/tariff.png" alt="Tariff Image" class="side-image">
+    </div>
 
     <section id="intro">
       <h2>Current state of Trump's Tariffs</h2>
@@ -289,7 +321,7 @@
     <h2>What were the effects of Trump's 2018 tariffs?</h2>
     <p>Trump's 2018 tariffs targeted imported goods like steel, aluminum, and washing machines in an effort to protect U.S. industries. While they aimed to boost domestic manufacturing, the tariffs raised costs for American businesses and consumers. Prices surged, especially for products like washing machines, as companies passed on the added expense.</p>
     <h2>How did washing machine prices change because of the 2018 tariffs?</h2>
-    <p> In early 2018, the Trump administration imposed tariffs on imported washing machines and steel. This caused immediate price hikes as manufacturers passed the added costs to consumers. By 2019, prices remained elevated, and when the COVID-19 pandemic hit in 2020, global supply chain disruptions pushed prices even higher. Though some relief came in the following years, prices didn’t significantly drop until the tariffs expired in 2023. This visual breakdown shows how a $500 washing machine in 2017 could cost over $700 just a few years later.</p>
+    <p> In early 2018, the Trump administration imposed tariffs on imported washing machines and steel. This caused immediate price hikes as manufacturers passed the added costs to consumers. By 2019, prices remained elevated, and when the COVID-19 pandemic hit in 2020, global supply chain disruptions pushed prices even higher. Though some relief came in the following years, prices didn't significantly drop until the tariffs expired in 2023. This visual breakdown shows how a $500 washing machine in 2017 could cost over $700 just a few years later.</p>
     <svg id="washchart" width="900" height="500"></svg>
     
     <section id="scrolly">
