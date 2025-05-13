@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Ikea Dimensions</title>
+    <title>Tariff Impacts</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -63,6 +63,13 @@
             text-align: left;
         }
         a { color: #aeefff; }
+        #map-legend {
+          margin-top: 1rem;
+          padding: 0.5rem;
+          background: #1e1e1e;
+          border-radius: 8px;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
         #scrolly {
             display: flex;
             align-items: flex-start;
@@ -235,20 +242,31 @@
             align-items: flex-start;
             max-width: 800px;
         }
-        .legend-row {
-            display: flex;
-            align-items: center;
-            margin-bottom: 0.2em;
+        #legend-overlay {
+          position: absolute;
+          bottom: 20px;
+          left: 20px;
+          background: #1e1e1e;
+          padding: 12px;
+          border-radius: 8px;
+          box-shadow: 0 0 5px rgba(0,0,0,0.5);
+          color: #f3f3f3;
+          font-family: 'Lora', serif;
+          font-size: 12px;
+          line-height: 1.4em;
         }
-        .legend-bubble {
-            display: inline-block;
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            margin-right: 0.5em;
-            background: #fff2;
-            vertical-align: middle;
+        .legend-entry {
+          display: flex;
+          align-items: center;
+          margin-top: 6px;
         }
+        .legend-color {
+          width: 18px;
+          height: 18px;
+          margin-right: 8px;
+          border: 1px solid #ccc;
+        }
+    
     </style>
 </head>
 <body>
@@ -258,13 +276,18 @@
     </h1>
 
     <section id="intro">
-    <h2>Current state of Trump's Tariffs</h2>
-    <svg id="choropleth" height="500" width="1000"></svg>
+      <h2>Current state of Trump's Tariffs</h2>
+      <div id="choropleth-wrapper" style="position: relative; width: 1000px; height: 500px;">
+        <svg id="choropleth" width="1000" height="500"></svg>
+        <div id="legend-overlay"></div>
+      </div>
     </section>
+    <div id="tooltip" style="position: absolute; display: none; padding: 6px 10px; background: rgba(0,0,0,0.8); color: #f3f3f3; border-radius: 4px; font-size: 12px; pointer-events: none;"></div>
+
 
     <section id="2018tariffs">
     <h2>What were the effects of Trump's 2018 tariffs?</h2>
-    <p>Trump’s 2018 tariffs targeted imported goods like steel, aluminum, and washing machines in an effort to protect U.S. industries. While they aimed to boost domestic manufacturing, the tariffs raised costs for American businesses and consumers. Prices surged, especially for products like washing machines, as companies passed on the added expense.</p>
+    <p>Trump's 2018 tariffs targeted imported goods like steel, aluminum, and washing machines in an effort to protect U.S. industries. While they aimed to boost domestic manufacturing, the tariffs raised costs for American businesses and consumers. Prices surged, especially for products like washing machines, as companies passed on the added expense.</p>
     <h2>How did washing machine prices change because of the 2018 tariffs?</h2>
     <p> In early 2018, the Trump administration imposed tariffs on imported washing machines and steel. This caused immediate price hikes as manufacturers passed the added costs to consumers. By 2019, prices remained elevated, and when the COVID-19 pandemic hit in 2020, global supply chain disruptions pushed prices even higher. Though some relief came in the following years, prices didn’t significantly drop until the tariffs expired in 2023. This visual breakdown shows how a $500 washing machine in 2017 could cost over $700 just a few years later.</p>
     <svg id="washchart" width="900" height="500"></svg>
@@ -330,15 +353,15 @@
         const mapAreaWidth = mapWidth - mapMargin.left - mapMargin.right;
         const mapAreaHeight = mapHeight - mapMargin.top - mapMargin.bottom;
         const map = choropleth.append("g")
-                    
+        const tooltip = d3.select("#tooltip");
         
         const requestData = async function () {
 
           const world = await d3.json("dataset/countries-110m.json");
           const tariffData = await d3.csv("dataset/all.csv", d3.autoType);
 
-          var countries = topojson.feature(world, world.objects.countries);     // List of state outlines to fill
-          var countriesMesh = topojson.mesh(world, world.objects.countries);    // 'Mesh' of all outlines put together for a stroke
+          var countries = topojson.feature(world, world.objects.countries);     
+          var countriesMesh = topojson.mesh(world, world.objects.countries);    
           var projection = d3.geoEqualEarth().fitSize([mapWidth, mapHeight], countries);
           var path = d3.geoPath().projection(projection);
 
@@ -361,6 +384,23 @@
                         const name = d.properties.name;
                         const tariff = countryTariffs[name];
                         return tariff != null ? colorScale(tariff) : "#ccc";
+                      })
+                      .on("mouseover", function (event, d) {
+                        d3.select(this)
+                          .attr("stroke", "#000000")
+                          .attr("stroke-width", 2)
+                          .raise();
+                        tooltip
+                          .style("display", "block")
+                          .style("left", event.pageX + 10 + "px")
+                          .style("top", event.pageY - 20 + "px")
+                          .html(`<strong>${d.properties.name}</strong><br>Tariff: ${countryTariffs[d.properties.name] ?? "N/A"}%`);
+                      })
+                      .on("mouseout", function () {
+                        d3.select(this)
+                          .attr("stroke", "none");
+
+                        tooltip.style("display", "none");
                       });
                     
           map.append("path").datum(countriesMesh)
@@ -368,51 +408,33 @@
             .attr("d", path);
 
 
+            const legendDiv = d3.select("#legend-overlay");
+            legendDiv.append("div")
+              .style("font-weight", "bold")
+              .style("margin-bottom", "6px")
+              .text("Tariffs Charged to USA (%)");
 
-          // legend
-          // Create a legend group
-        const legend = choropleth.append("g")
-          .attr("class", "legend")
-          .attr("transform", `translate(${mapWidth - 150}, ${mapHeight - 250})`);
+            const thresholds = colorScale.quantiles();
+            const colors = colorScale.range();
 
-        // Legend title
-        legend.append("text")
-          .text("Tariffs Charged to USA (%)")
-          .attr("y", -10)
-          .attr("font-size", "12px")
-          .attr("font-weight", "bold");
+            colors.forEach((color, i) => {
+              const from = i === 0 ? minMax[0] : thresholds[i - 1];
+              const to = thresholds[i];
 
-        // Get quantile thresholds and color range
-        const thresholds = colorScale.quantiles();  // array of breakpoints
-        const colors = colorScale.range();          // same order as thresholds
+              const label = (i === colors.length - 1)
+                ? `${from.toFixed(1)}+`
+                : `${from.toFixed(1)} - ${to.toFixed(1)}`;
 
-        // Draw legend entries
-        colors.forEach((color, i) => {
-          const x = 0;
-          const y = i * 20;
+              const entry = legendDiv.append("div")
+                .attr("class", "legend-entry");
 
-          legend.append("rect")
-            .attr("x", x)
-            .attr("y", y)
-            .attr("width", 18)
-            .attr("height", 18)
-            .attr("fill", color);
+              entry.append("div")
+                .attr("class", "legend-color")
+                .style("background", color);
 
-          let label;
-          const from = i === 0 ? minMax[0] : thresholds[i - 1];
-          const to = thresholds[i];
+              entry.append("span").text(label);
 
-          if (i === colors.length - 1) {
-            label = `${from.toFixed(1)}+`;
-          } else {
-            label = `${from.toFixed(1)} - ${to.toFixed(1)}`;
-          }
-
-          legend.append("text")
-            .attr("x", x + 25)
-            .attr("y", y + 13)
-            .attr("font-size", "12px")
-            .text(label);
+          
         });
 
         };
@@ -741,7 +763,6 @@
               .attr("stroke", d => color(d.data.Sentiment))
               .attr("stroke-width", 3);
 
-            // Add the image inside the circle
             node.append("image")
               .attr("href", d => d.data.image)
               .attr("width", d => d.r * 2)
@@ -749,8 +770,6 @@
               .attr("x", d => -d.r)
               .attr("y", d => -d.r)
               .attr("clip-path", d => `circle(${d.r}px at ${d.r}px ${d.r}px)`);
-
-
 
             node.append("title")
               .text(d => `${d.data.Name}\n${d.data.Sentiment}`);
